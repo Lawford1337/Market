@@ -1,0 +1,159 @@
+// Настройки подключения
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// 1. Пользователь
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  username  String?
+  role      String   @default("buyer") // buyer, seller, admin
+  balance   Float    @default(0.0)
+  
+
+  bonuses   Float    @default(0.0)
+
+  banners   Banner[]
+
+  city      String?
+
+  tickets    Ticket[]
+
+  orders    Order[]
+  products  Product[]
+
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+
+  createdAt DateTime @default(now())
+
+  reviews   Review[]
+}
+
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  price       Float
+  images      String[]
+  category    String
+
+  quantity    Int      @default(1)
+
+  sellerId    Int
+  seller      User     @relation(fields: [sellerId], references: [id])
+  
+  orderItems  OrderItem[]
+  messages    Message[]
+  reviews     Review[]
+
+}
+
+model Order {
+  id        Int      @id @default(autoincrement())
+  status    String   @default("pending")
+  total     Float
+
+  pickupLocation String?
+ 
+  buyerId   Int
+  buyer     User     @relation(fields: [buyerId], references: [id])
+  
+  items     OrderItem[]
+  
+  createdAt DateTime @default(now())
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  quantity  Int      // Сколько штук купили
+  price     Float    // Цена на момент покупки
+}
+
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  text      String
+  imageUrl  String?  
+
+  // Кто отправил
+  senderId  Int
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  // Кому отправили (Продавец)
+  receiverId Int
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  
+  // К какому товару относится вопрос (чтобы продавец понял, о чем речь)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// Модель для 2FA кодов
+model TwoFactorToken {
+  id      Int      @id @default(autoincrement())
+  email   String
+  token   String   // Сам код (например "123456")
+  expires DateTime // Время жизни кода
+
+  // Чтобы для одного email был только один уникальный код
+  @@unique([email, token])
+}
+
+//отзывы
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  text      String
+  rating    Int      // Оценка от 1 до 5
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+
+model Ticket {
+  id        Int      @id @default(autoincrement())
+  subject   String   // Тема (например: "Не пришел товар")
+  message   String   // Описание
+  status    String   @default("open") // open (открыт), closed (решен)
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  link      String?  // Куда ведет клик 
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
