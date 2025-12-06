@@ -1,6 +1,6 @@
 .main {
   padding: 40px;
-  max-width: 1200px;
+  max-width: 1600px; /* Широкий экран */
   margin: 0 auto;
 }
 
@@ -8,7 +8,7 @@
   font-size: 32px;
   margin-bottom: 30px;
   font-weight: 800;
-  color: #171717; /* Черный заголовок */
+  color: #171717;
 }
 
 .empty {
@@ -21,7 +21,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* Чуть шире карточки */
   gap: 20px;
 }
 
@@ -29,82 +29,11 @@
   border: 1px solid #eaeaea;
   border-radius: 12px;
   overflow: hidden;
-  transition: box-shadow 0.2s;
-  background: white; /* Чтобы карточка точно была белой */
-}
-
-.card:hover {
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-
-.imagePlaceholder {
-  height: 200px;
-  background: #f4f4f4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40px;
-}
-
-.cardBody {
-  padding: 15px;
-}
-
-.cardTitle {
-  font-size: 16px;
-  margin-bottom: 10px;
-  font-weight: 600;
-  color: #000000; /* 🔥 ПРИНУДИТЕЛЬНО ЧЕРНЫЙ ЦВЕТ */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.price {
-  font-size: 18px;
-  font-weight: bold;
-  color: #cb11ab;
-  margin-bottom: 10px;
-}
-
-.button {
-  width: 100%;
-  padding: 10px;
-  background: #cb11ab;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  text-align: center;
-  display: inline-block;
-}
-
-/* Стили для категорий (чтобы не было серым по серому) */
-.categoryChip {
-  padding: 8px 16px;
-  background: #eee;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #333 !important; /* 🔥 ТЕМНО-СЕРЫЙ ЦВЕТ */
-  text-decoration: none;
-  transition: background 0.2s;
-}
-
-.categoryChip:hover {
-  background: #ddd;
-
-/* ... старые стили ... */
-
-.card {
-  border: 1px solid #eaeaea;
-  border-radius: 12px;
-  overflow: hidden;
   transition: box-shadow 0.2s, transform 0.2s;
   background: white;
-  position: relative;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .card:hover {
@@ -112,42 +41,41 @@
   transform: translateY(-2px);
 }
 
-/* Стили для отсутствующего товара */
+/* Если нет в наличии - делаем карточку бледной */
 .outOfStockCard {
-  border-color: #eee;
-  background-color: #fafafa; /* Чуть серый фон */
+  opacity: 0.8;
+  background: #fafafa;
 }
 
 .imagePlaceholder {
-  height: 200px;
+  height: 220px;
   background: #f4f4f4;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative; /* Для позиционирования плашки */
+  position: relative;
   overflow: hidden;
 }
 
-/* Черная полупрозрачная шторка */
+/* --- ВОЗВРАЩАЕМ ШТАМП "РАСКУПЛЕНО" --- */
 .overlay {
   position: absolute;
-  inset: 0; /* Растянуть на весь блок */
-  background: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background: rgba(255, 255, 255, 0.6); /* Полупрозрачный белый */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
 }
 
-/* Текст "РАСКУПЛЕНО" */
 .soldOutBadge {
-  color: white;
+  color: #ff4444;
   font-weight: 800;
-  font-size: 18px;
-  border: 2px solid white;
-  padding: 5px 15px;
+  font-size: 20px;
+  border: 3px solid #ff4444;
+  padding: 10px 20px;
   border-radius: 8px;
-  transform: rotate(-10deg); /* Небольшой наклон для стиля */
+  transform: rotate(-15deg); /* Наклон как у печати */
   text-transform: uppercase;
   letter-spacing: 2px;
 }
@@ -156,7 +84,7 @@
   padding: 15px;
   display: flex;
   flex-direction: column;
-  flex: 1; /* Чтобы кнопка всегда была внизу */
+  flex: 1;
 }
 
 .cardTitle {
@@ -174,29 +102,17 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  margin-top: auto; /* Прижимает цену вниз */
+  margin-top: auto;
 }
 
 .price {
   font-size: 18px;
   font-weight: bold;
   color: #cb11ab;
+  margin: 0;
 }
 
-.noStockText {
-  color: #ff4444;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.stockCount {
-  font-size: 12px;
-  color: #28a745;
-  background: #e6fffa;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
+/* Кнопки */
 .button {
   width: 100%;
   padding: 10px;
@@ -207,16 +123,22 @@
   cursor: pointer;
   font-weight: bold;
   text-align: center;
+}
+
+.disabledButton {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Категории */
+.categoryChip {
+  padding: 8px 16px;
+  background: #eee;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #333 !important;
+  text-decoration: none;
   transition: background 0.2s;
 }
-
-/* Кнопка для отсутствующего товара */
-.disabledButton {
-  background: #e0e0e0;
-  color: #999;
-  cursor: not-allowed;
-}}
-
-body {
-  background-color: #ffffff;
-}
+.categoryChip:hover { background: #ddd; }

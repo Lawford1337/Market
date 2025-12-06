@@ -9,6 +9,9 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { PICKUP_POINTS } from '@/lib/constants';
 import dynamic from 'next/dynamic';
+import { PriceTag } from '@/components/shared/PriceTag';
+
+
 
 const PickupMap = dynamic(() => import('@/components/ui/PickupMap'), { 
   ssr: false,
@@ -92,7 +95,7 @@ export default function CartClient({ userBonuses = 0 }: { userBonuses?: number }
             <div style={{ marginBottom: 15 }}>
               <div className={styles.summaryRow}>
                 <span>Товары:</span>
-                <span>{itemsPrice} ₽</span>
+                <PriceTag price={itemsPrice} />
               </div>
               
               <div className={styles.summaryRow} style={{ color: shippingCost === 0 ? '#28a745' : '#666' }}>
@@ -110,7 +113,7 @@ export default function CartClient({ userBonuses = 0 }: { userBonuses?: number }
 
             <div className={`${styles.summaryRow} ${styles.total}`} style={{ borderTop: '1px solid #eee', paddingTop: 10 }}>
               <span>Итого:</span>
-              <span>{finalPrice} ₽</span>
+              <PriceTag price={finalPrice} />
             </div>
 
             <hr style={{ margin: '15px 0', border: 'none', borderTop: '1px solid #eee' }} />

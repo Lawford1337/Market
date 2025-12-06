@@ -7,10 +7,11 @@ import Link from 'next/link';
 import { DeleteProductBtn } from '@/components/ui/DeleteProductBtn';
 import { confirmOrderReceived } from '@/actions/seller';
 import { simulateDelivery } from '@/actions/order';
+import { deleteBanner } from '@/actions/banner'; 
+import { CreateBannerForm } from '@/components/partner/CreateBannerForm'; 
 import styles from './profile.module.css';
 import { Edit } from 'lucide-react';
 
-// Добавили Props для чтения URL параметров (?page=2)
 interface Props {
   searchParams: Promise<{
     page?: string;
@@ -29,7 +30,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     redirect('/login');
   }
 
-  // 1. Достаем юзера БЕЗ товаров (товары грузим отдельно)
+  // 1. Достаем юзера + Покупки + Товары
   const user = await db.user.findUnique({
     where: { id: payload.id },
     include: {
@@ -43,34 +44,32 @@ export default async function ProfilePage({ searchParams }: Props) {
   if (!user) redirect('/login');
 
   const isSeller = user.role === 'seller';
+  const isPartner = user.role === 'partner'; // <--- Вернули проверку роли
 
-  // 2. ПАГИНАЦИЯ ТОВАРОВ (Только для продавца)
+  // --- ЛОГИКА ПРОДАВЦА ---
   let products: any[] = [];
   let totalPages = 0;
   let currentPage = 1;
-
-  // Если это продавец - грузим и продажи, и товары (с пагинацией)
   let sales: any[] = [];
   
   if (isSeller) {
-    // А) Грузим продажи (все последние)
+    // Продажи
     sales = await db.orderItem.findMany({
       where: { product: { sellerId: user.id } },
       orderBy: { id: 'desc' },
-      take: 5, // Ограничим список продаж (например, последние 5), чтобы не забивать экран
+      take: 5,
       include: {
         product: true,
         order: { include: { buyer: true } }
       }
     });
 
-    // Б) Грузим Товары (С ПАГИНАЦИЕЙ)
-    const PAGE_SIZE = 5; // Показывать по 5 товаров на странице
+    // Товары (Пагинация)
+    const PAGE_SIZE = 5;
     const params = await searchParams;
     currentPage = Number(params.page) || 1;
     const skip = (currentPage - 1) * PAGE_SIZE;
     
-    // Запрос товаров
     products = await db.product.findMany({
       where: { sellerId: user.id },
       take: PAGE_SIZE,
@@ -78,13 +77,16 @@ export default async function ProfilePage({ searchParams }: Props) {
       orderBy: { id: 'desc' },
     });
 
-    // Считаем страницы
     const totalProducts = await db.product.count({ where: { sellerId: user.id } });
     totalPages = Math.ceil(totalProducts / PAGE_SIZE);
   }
 
+  // --- ЛОГИКА ПАРТНЕРА --- 
+  const myBanners = isPartner ? await db.banner.findMany({ where: { userId: user.id } }) : [];
+
   return (
     <div className={styles.container}>
+      {/* --- ШАПКА --- */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Привет, {user.username}! 👋</h1>
@@ -96,6 +98,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         </form>
       </div>
 
+      {/* --- СТАТИСТИКА --- */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={styles.statLabel}>Ваш баланс</div>
@@ -112,9 +115,11 @@ export default async function ProfilePage({ searchParams }: Props) {
         </div>
         <div className={styles.statCard}>
           <div className={styles.statLabel}>Статус</div>
-          <div className={styles.statValue}>{isSeller ? 'Продавец 💼' : 'Покупатель 🛒'}</div>
+          <div className={styles.statValue}>
+            {isSeller ? 'Продавец 💼' : (isPartner ? 'Партнер 🤝' : 'Покупатель 🛒')}
+          </div>
         </div>
-        {isSeller && (
+        {(isSeller || isPartner) && (
           <div className={styles.statCard}>
             <div className={styles.statLabel}>Бонусы</div>
             <div className={styles.statValue} style={{ color: '#28a745' }}>{user.bonuses} Б</div>
@@ -122,12 +127,39 @@ export default async function ProfilePage({ searchParams }: Props) {
         )}
       </div>
 
-      {/* === ПАНЕЛЬ ПРОДАВЦА === */}
+      {/* === БЛОК ПАРТНЕР=== */}
+      {isPartner && (
+        <div style={{ marginBottom: 60, borderTop: '2px solid #eee', paddingTop: 40 }}>
+          <h2 style={{ fontSize: '28px', marginBottom: '20px', color: '#cb11ab' }}>🤝 Кабинет Партнера</h2>
+          
+          <CreateBannerForm />
+
+          <h3 style={{ marginTop: 20 }}>Мои активные баннеры</h3>
+          {myBanners.length === 0 ? <p style={{color:'#888'}}>Баннеров нет</p> : (
+            <div style={{ display: 'flex', gap: 15, flexWrap: 'wrap', marginTop: 15 }}>
+              {myBanners.map(b => (
+                <div key={b.id} style={{ position: 'relative', border: '1px solid #eee' }}>
+                  <img src={b.imageUrl} style={{ width: 150, height: 250, objectFit: 'cover' }} />
+                      <form 
+                        action={async () => {
+                          'use server';
+                          await deleteBanner(b.id);
+                        }} 
+                        style={{ position: 'absolute', top: 5, right: 5 }}>
+                        <button style={{ background: 'red', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '50%', width: 24, height: 24 }}>×</button>
+                      </form>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* === БЛОК ПРОДАВЦА === */}
       {isSeller && (
         <div style={{ marginBottom: 60, borderTop: '2px solid #eee', paddingTop: 40 }}>
           <h2 style={{ fontSize: '28px', marginBottom: '20px', color: '#cb11ab' }}>💼 Панель Продавца</h2>
 
-          {/* Продажи (Ограничены 5 последними) */}
           <h3 className={styles.sectionTitle}>💰 Входящие заказы (Последние 5)</h3>
           {sales.length === 0 ? (
             <div className={styles.emptyState}>Пока продаж нет.</div>
@@ -137,7 +169,9 @@ export default async function ProfilePage({ searchParams }: Props) {
                 <div key={sale.id} style={{ border: '1px solid #cb11ab', padding: 20, borderRadius: 12, background: '#fffcfc' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                     <strong>Продажа #{sale.id}</strong>
-                    <span>Статус: <b>{sale.order.status}</b></span>
+                    <span style={{ color: sale.order.status === 'received' ? 'green' : 'orange' }}>
+                      {sale.order.status === 'received' ? 'Получен' : 'В пути'}
+                    </span>
                   </div>
                   <div>
                     {sale.product.title} — <strong>{sale.price * sale.quantity} ₽</strong>
@@ -149,7 +183,6 @@ export default async function ProfilePage({ searchParams }: Props) {
             </div>
           )}
 
-          {/* Мои товары (С ПАГИНАЦИЕЙ) */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 30 }}>
             <h3 className={styles.sectionTitle} style={{ margin: 0 }}>📦 Мои товары</h3>
             <Link href="/profile/create" className={styles.createButton}>+ Добавить товар</Link>
@@ -171,20 +204,13 @@ export default async function ProfilePage({ searchParams }: Props) {
                     </li>
                   ))}
                 </ul>
-
+                
+                {/* Пагинация */}
                 {totalPages > 1 && (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 20, alignItems: 'center' }}>
-                    {currentPage > 1 ? (
-                      <Link href={`/profile?page=${currentPage - 1}`} className={styles.button} style={{ width: 'auto', background: '#333', padding: '5px 15px', fontSize: 14 }}>← Назад</Link>
-                    ) : (
-                      <button disabled style={{ padding: '5px 15px', background: '#eee', border: 'none', borderRadius: 8, color: '#aaa' }}>← Назад</button>
-                    )}
+                    {currentPage > 1 ? <Link href={`/profile?page=${currentPage - 1}`} className={styles.button} style={{ width: 'auto', background: '#333', padding: '5px 15px', fontSize: 14 }}>← Назад</Link> : null}
                     <span style={{ fontSize: 14 }}>Страница {currentPage} из {totalPages}</span>
-                    {currentPage < totalPages ? (
-                      <Link href={`/profile?page=${currentPage + 1}`} className={styles.button} style={{ width: 'auto', background: '#333', padding: '5px 15px', fontSize: 14 }}>Вперед →</Link>
-                    ) : (
-                      <button disabled style={{ padding: '5px 15px', background: '#eee', border: 'none', borderRadius: 8, color: '#aaa' }}>Вперед →</button>
-                    )}
+                    {currentPage < totalPages ? <Link href={`/profile?page=${currentPage + 1}`} className={styles.button} style={{ width: 'auto', background: '#333', padding: '5px 15px', fontSize: 14 }}>Вперед →</Link> : null}
                   </div>
                 )}
               </>
@@ -193,6 +219,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         </div>
       )}
 
+      {/* === МОИ ПОКУПКИ === */}
       <div style={{ borderTop: '2px solid #eee', paddingTop: 40 }}>
         <h2 style={{ fontSize: '28px', marginBottom: '20px', color: '#333' }}>🛒 Мои Покупки</h2>
         {user.orders.length === 0 ? (
@@ -215,6 +242,7 @@ export default async function ProfilePage({ searchParams }: Props) {
                     <span style={{ fontWeight: 'bold', fontSize: 18 }}>{order.total} ₽</span>
                   </div>
                 </div>
+                {/* Список товаров */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {order.items.map((item) => (
                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
@@ -230,7 +258,7 @@ export default async function ProfilePage({ searchParams }: Props) {
                     </div>
                   ))}
                 </div>
-                {/* Кнопки действий покупателя */}
+                {/* Кнопки */}
                 <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                   {order.status === 'delivering' && (
                     <form action={async () => { 'use server'; await simulateDelivery(order.id); }}>
@@ -249,7 +277,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         )}
       </div>
 
-      {!isSeller && (
+      {!isSeller && !isPartner && (
         <div style={{ marginTop: 60, textAlign: 'center', borderTop: '1px solid #eee', paddingTop: 20 }}>
           <Link href="/become-seller" style={{ color: '#cb11ab', fontWeight: 'bold' }}>💼 Хотите продавать свои товары?</Link>
         </div>

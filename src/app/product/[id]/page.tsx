@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ProductQR } from '@/components/ui/ProductQR';
 import { ReviewForm } from '@/components/reviews/ReviewForm'; 
 import { Star } from 'lucide-react'
+import { PriceTag } from "@/components/shared/PriceTag";
 
 interface Props {
   params: Promise<{
@@ -62,7 +63,7 @@ const product = await db.product.findUnique({
         <p className={styles.description}>{product.description}</p>
         
         <div className={styles.priceBlock}>
-          <span className={styles.price}>{product.price} ₽</span>
+          <PriceTag price={product.price} className={styles.price} />
           
           {/* Блок с кнопками (Flex, чтобы стояли рядом) */}
           <div style={{ display: 'flex', gap: '10px' }}>

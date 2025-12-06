@@ -5,8 +5,10 @@ import { ShoppingCart, User, MessageCircle } from 'lucide-react';
 import styles from './Header.module.css';
 import { useCartStore } from '@/store/cart';
 import { useRouter, useSearchParams } from 'next/navigation'; 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UnreadWatcher } from './UnreadWatcher';
+import { REGIONS } from '@/lib/regions';
+import { useRegionStore } from '@/store/region';
 
 export const Header = () => {
   const items = useCartStore((state) => state.items);
@@ -26,6 +28,11 @@ export const Header = () => {
       }
     }
   };
+
+    const { currentRegion, setRegion } = useRegionStore();
+  // Хак для гидратации (чтобы флаг не прыгал)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className={styles.header}>
@@ -49,6 +56,22 @@ export const Header = () => {
       </div>
 
       <nav className={styles.nav}>
+        {mounted && (
+          <select 
+            value={currentRegion.id}
+            onChange={(e) => setRegion(e.target.value as any)}
+            style={{ 
+              padding: '5px', borderRadius: '8px', border: '1px solid #ddd', 
+              background: 'transparent', cursor: 'pointer', fontSize: '16px' 
+            }}
+          >
+            {REGIONS.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.flag} {r.currency}
+              </option>
+            ))}
+          </select>
+        )}
         <Link href="/chat" className={styles.navLink}>
           <MessageCircle size={24} />
           <span>Чаты</span>
